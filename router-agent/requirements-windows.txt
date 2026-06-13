@@ -1,0 +1,10 @@
+# Windows-specific Python dependencies
+pyshark>=0.6        # Cross-platform packet capture (requires Wireshark)
+requests>=2.31.0
+python-dotenv>=1.0.0
+flask>=3.0.0
+flask-cors>=4.0.0
+aiohttp>=3.9.0      # WebSocket server for real-time streaming
+
+# Alternative for Windows (if pyshark doesn't work)
+# winpcapy>=1.1.4    # Direct Windows packet capture

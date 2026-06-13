@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+vendor/
+venv/
+__pycache__/
+*.pyc
+
+# Environment files
+.env
+.env.local
+.env.windows
+
+# Database
+*.sqlite
+*.db
+
+# Logs
+*.log
+storage/logs/*.log
+
+# Build files
+dist/
+build/
+*.exe
+*.dll
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp
+_tmp*.py
