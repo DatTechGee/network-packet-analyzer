@@ -149,8 +149,9 @@ The system has three components that work together:
 1. **Python 3.9+** - Download from https://python.org
 2. **PHP 8.1+** - Download from https://windows.php.net or use XAMPP
 3. **Composer** - Download from https://getcomposer.org
-4. **Node.js 18+** - Download from https://nodejs.org
-5. **Wireshark** - Download from https://wireshark.org/download
+4. **Laravel 10+** - Installed via Composer (see installation steps below)
+5. **Node.js 18+** - Download from https://nodejs.org
+6. **Wireshark** - Download from https://wireshark.org/download
 
 ---
 

@@ -9,6 +9,7 @@
 | Python | 3.9+ | https://python.org/downloads |
 | PHP | 8.1+ | https://windows.php.net/download |
 | Composer | Latest | https://getcomposer.org/download |
+| Laravel | 10+ | https://laravel.com/docs/10.x/installation |
 | Node.js | 18+ | https://nodejs.org/download |
 | Wireshark | Latest | https://www.wireshark.org/download |
 
