@@ -85,11 +85,17 @@ class DomainBlocker:
             resp = requests.get(
                 f"{self.backend_url}/blocked-domains",
                 headers={'Authorization': f'Bearer {self.agent_key}'},
-                timeout=10
+                timeout=5
             )
             if resp.status_code == 200:
                 data = resp.json()
-                new_blocked = data.get('blocked_domains', {})
+                blocked_list = data.get('blocked_domains', [])
+                if isinstance(blocked_list, list):
+                    new_blocked = {domain: 1 for domain in blocked_list if isinstance(domain, str)}
+                elif isinstance(blocked_list, dict):
+                    new_blocked = blocked_list
+                else:
+                    new_blocked = {}
                 new_ips = set()
                 for domain in new_blocked:
                     ip = resolve_domain(domain)

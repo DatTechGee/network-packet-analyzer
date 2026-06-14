@@ -4,7 +4,7 @@ import { AlertTriangle, AlertCircle, CheckCircle, Shield, Wifi, WifiOff, Ban, Un
 
 export default function SecurityCenter() {
   const [threats, setThreats] = useState([]);
-  const [filters, setFilters] = useState({ level: 'all', period: '1h', type: 'all' });
+  const [filters, setFilters] = useState({ level: 'all', period: '7d', type: 'all' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [wsStatus, setWsStatus] = useState('connecting');
@@ -14,8 +14,7 @@ export default function SecurityCenter() {
   useEffect(() => {
     fetchThreats();
     fetchBlockedDomains();
-    const interval = setInterval(fetchThreats, 5000);
-    const blockInterval = setInterval(fetchBlockedDomains, 10000);
+    const blockInterval = setInterval(fetchBlockedDomains, 15000);
 
     const connectWs = () => {
       try {
@@ -53,10 +52,13 @@ export default function SecurityCenter() {
     connectWs();
 
     return () => {
-      clearInterval(interval);
       clearInterval(blockInterval);
       if (wsRef.current) wsRef.current.close();
     };
+  }, []);
+
+  useEffect(() => {
+    fetchThreats();
   }, [filters]);
 
   const fetchThreats = async () => {

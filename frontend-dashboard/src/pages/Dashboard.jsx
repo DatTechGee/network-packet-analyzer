@@ -150,7 +150,7 @@ export default function Dashboard() {
         deviceAPI.getAll({ per_page: MAX_ACTIVE_DEVICE_PAGE_SIZE, active_window_minutes: REALTIME_ACTIVE_WINDOW_MINUTES }),
         trafficAPI.getStats({ period: '24h', active_window_minutes: REALTIME_ACTIVE_WINDOW_MINUTES }),
         trafficAPI.getTimeline({ period: '24h' }),
-        threatAPI.getAll({ period: '1h', limit: 20 }),
+        threatAPI.getAll({ period: '7d', limit: 20 }),
       ]);
 
       let resolvedConnectedDevices = [];

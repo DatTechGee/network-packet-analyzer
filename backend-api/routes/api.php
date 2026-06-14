@@ -64,16 +64,28 @@ Route::prefix('alerts')->group(function () {
 
 // Blocked domains endpoint (for router agent enforcement)
 Route::get('/blocked-domains', function () {
-    $devices = \App\Models\Device::all();
-    $blocked = [];
-    foreach ($devices as $device) {
-        $metadata = $device->metadata ?? [];
-        $domains = $metadata['blocked_domains'] ?? [];
-        foreach ($domains as $domain) {
-            $blocked[$domain] = $device->id;
+    try {
+        $blocked = [];
+        $devices = \App\Models\Device::all(['id', 'metadata']);
+        foreach ($devices as $device) {
+            $metadata = $device->metadata;
+            if (!is_array($metadata)) {
+                continue;
+            }
+            $domains = $metadata['blocked_domains'] ?? [];
+            if (!is_array($domains)) {
+                continue;
+            }
+            foreach ($domains as $domain) {
+                if (is_string($domain) && $domain !== '') {
+                    $blocked[$domain] = $device->id;
+                }
+            }
         }
+        return response()->json(['blocked_domains' => array_keys($blocked)]);
+    } catch (\Exception $e) {
+        return response()->json(['blocked_domains' => [], 'error' => $e->getMessage()]);
     }
-    return response()->json(['blocked_domains' => $blocked]);
 })->withoutMiddleware('throttle:api');
 
 // Health check

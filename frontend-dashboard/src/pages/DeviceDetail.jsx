@@ -14,7 +14,7 @@ export default function DeviceDetail() {
   const [device, setDevice] = useState(null);
   const [sites, setSites] = useState([]);
   const [selectedSite, setSelectedSite] = useState(null);
-  const [sitePeriod, setSitePeriod] = useState('5m');
+  const [sitePeriod, setSitePeriod] = useState('24h');
   const [bandwidth, setBandwidth] = useState(null);
   const [threats, setThreats] = useState([]);
   const [connections, setConnections] = useState([]);
@@ -25,7 +25,7 @@ export default function DeviceDetail() {
 
   useEffect(() => {
     fetchDeviceDetails();
-    const interval = setInterval(fetchDeviceDetails, 5000);
+    const interval = setInterval(fetchDeviceDetails, 10000);
     return () => clearInterval(interval);
   }, [deviceId, sitePeriod]);
 

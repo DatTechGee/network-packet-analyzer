@@ -170,20 +170,49 @@ class ThreatAnalysisService
         $domain = strtolower(trim((string) ($traffic['domain'] ?? $traffic['hostname'] ?? '')));
         $destIp = $traffic['destination_ip'] ?? '';
 
-        // Port 80 = HTTP only (not encrypted) — threat even without domain resolved
-        if ($destPort == 80) {
-            // If we have a domain, check it's not private
-            if ($domain !== '' && $this->isPrivateHost($domain)) {
-                return false;
-            }
-            // If no domain, check the destination IP is not private
-            if ($domain === '' && $this->isPrivateHost($destIp)) {
-                return false;
-            }
-            return true;
+        if ($destPort != 80) {
+            return false;
         }
 
-        return false;
+        if ($domain !== '' && $this->isPrivateHost($domain)) {
+            return false;
+        }
+        if ($domain === '' && $this->isPrivateHost($destIp)) {
+            return false;
+        }
+
+        $safeDomains = [
+            'mc.corel.com', 'corel.com', 'windowsupdate.com', 'update.microsoft.com',
+            'download.windowsupdate.com', 'dl.delivery.mp.microsoft.com',
+            'ocsp.apple.com', 'mesu.apple.com', 'osrecovery.apple.com',
+            'connectivitycheck.gstatic.com', 'connectivitycheck.android.com',
+            'clients3.google.com', 'clients4.google.com',
+            'dl.google.com', 'update.googleapis.com',
+            'ctldl.windowsupdate.com', 'fe2cr.update.microsoft.com',
+            'ftpmirror.gnu.org', 'archive.ubuntu.com',
+            'msedge.api.cdp.microsoft.com', 'settings-win.data.microsoft.com',
+            'v10.events.data.microsoft.com', 'v20.events.data.microsoft.com',
+            'telemetry.microsoft.com', 'watson.telemetry.microsoft.com',
+            'www.msftconnecttest.com', 'msftconnecttest.com',
+            'ipv4.icanhazip.com', 'api.ipify.org',
+        ];
+
+        if ($domain !== '') {
+            foreach ($safeDomains as $safe) {
+                if ($domain === $safe || str_ends_with($domain, '.' . $safe)) {
+                    return false;
+                }
+            }
+        }
+
+        if ($domain === '' && $destIp !== '') {
+            $safeIps = ['23.58.193.64', '23.58.193.65'];
+            if (in_array($destIp, $safeIps)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

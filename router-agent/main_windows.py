@@ -10,6 +10,7 @@ import requests
 import json
 import sys
 import os
+import socket
 from pathlib import Path
 from threading import Thread, Lock
 from datetime import datetime, timezone
@@ -110,8 +111,8 @@ class RouterAgentWindows:
         self.sync_thread = Thread(target=self._sync_loop, daemon=True)
         self.sync_thread.start()
         
-        # Start domain blocker
-        self.domain_blocker.start()
+        # Start domain blocker (disabled - uses too much backend resources)
+        # self.domain_blocker.start()
         
         logger.info(f"All threads started ({len(self.config.INTERFACES)} interfaces)")
     
@@ -237,12 +238,15 @@ class RouterAgentWindows:
                     host_mac = pc._get_host_mac()
                     if host_mac:
                         break
+                host_name = socket.gethostname()
                 all_device_stats[host_ip] = {
                     'packets': 0,
                     'bytes_sent': 0,
                     'bytes_received': 0,
                     'last_seen': datetime.now(timezone.utc).isoformat(),
                     'mac_address': host_mac or '',
+                    'hostname': host_name,
+                    'device_name': host_name,
                 }
 
             # Skip only if truly nothing to send

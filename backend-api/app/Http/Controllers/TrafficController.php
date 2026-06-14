@@ -125,7 +125,15 @@ class TrafficController extends Controller
             }
 
             $trafficLogsCreated++;
-            $detectedThreats = $this->threatService->analyzeTraffic([
+
+            $destPort = (int) ($packet['destination_port'] ?? 0);
+            $needsAnalysis = in_array($destPort, [80, 8080, 8081, 8443, 53])
+                || !empty($packet['domain'])
+                || !empty($packet['hostname']);
+
+            $detectedThreats = [];
+            if ($needsAnalysis) {
+                $detectedThreats = $this->threatService->analyzeTraffic([
                 'device_id' => $deviceIdsByIp[$deviceIp],
                 'source_ip' => $sourceIp,
                 'destination_ip' => $packet['destination_ip'] ?? null,
@@ -141,6 +149,7 @@ class TrafficController extends Controller
                 'user_agent' => $packet['user_agent'] ?? null,
                 'app_name' => $packet['app_name'] ?? null,
             ]);
+            }
 
             foreach ($detectedThreats as $dt) {
                 $this->broadcastThreat($dt->toArray());
@@ -269,34 +278,30 @@ class TrafficController extends Controller
         }
 
         DB::transaction(function () use ($trafficLogRows, $threatRows) {
-            foreach (array_chunk($trafficLogRows, 500) as $chunk) {
-                if ($chunk !== []) {
+            if (!empty($trafficLogRows)) {
+                foreach (array_chunk($trafficLogRows, 500) as $chunk) {
                     TrafficLog::insert($chunk);
                 }
             }
-
-            foreach (array_chunk($threatRows, 500) as $chunk) {
-                if ($chunk !== []) {
+            if (!empty($threatRows)) {
+                foreach (array_chunk($threatRows, 500) as $chunk) {
                     Threat::insert($chunk);
                 }
             }
         });
 
-        // Scan and Alert on device disconnections
-        $offlineThreshold = now()->subSeconds(30);
-        $offlineDevices = Device::where('is_online', true)
-            ->where('mac_address', '!=', 'external-network')
-            ->where('last_seen', '<', $offlineThreshold)
-            ->get();
-
-        foreach ($offlineDevices as $offlineDevice) {
-            $offlineDevice->update(['is_online' => false]);
-            \App\Models\Alert::create([
-                'type' => 'device_disconnected',
-                'title' => 'Device Disconnected',
-                'message' => "Device " . ($offlineDevice->device_name ?: $offlineDevice->ip_address) . " has disconnected.",
-                'device_id' => $offlineDevice->id,
-            ]);
+        // Only scan for offline devices every 30 seconds (use cache)
+        $offlineScanKey = 'offline_scan_last';
+        if (!Cache::has($offlineScanKey)) {
+            Cache::put($offlineScanKey, true, 30);
+            $offlineThreshold = now()->subSeconds(30);
+            $offlineDevices = Device::where('is_online', true)
+                ->where('mac_address', '!=', 'external-network')
+                ->where('last_seen', '<', $offlineThreshold)
+                ->get();
+            foreach ($offlineDevices as $offlineDevice) {
+                $offlineDevice->update(['is_online' => false]);
+            }
         }
 
         return response()->json([
@@ -888,13 +893,43 @@ class TrafficController extends Controller
         foreach ($candidates as $candidate) {
             if (is_string($candidate)) {
                 $candidate = trim($candidate);
-                if ($candidate !== '') {
+                if ($candidate !== '' && !str_starts_with($candidate, 'Device ')) {
                     return $candidate;
                 }
             }
         }
 
+        // Try NetBIOS name resolution (nbtstat)
+        if ($this->isPrivateIp($ip)) {
+            $name = $this->resolveNetBIOSName($ip);
+            if ($name) {
+                return $name;
+            }
+        }
+
         return 'Device ' . $ip;
+    }
+
+    private function resolveNetBIOSName(string $ip): ?string
+    {
+        try {
+            $output = shell_exec("nbtstat -A {$ip} 2>&1");
+            if ($output && preg_match('/Registered\s+.*\s+(\S+)\s+<00>/', $output, $matches)) {
+                $name = trim($matches[1]);
+                if ($name !== '' && $name !== '__MSBROWSE__') {
+                    return $name;
+                }
+            }
+            if ($output && preg_match('/Registered\s+.*\s+(\S+)\s+<20>/', $output, $matches)) {
+                $name = trim($matches[1]);
+                if ($name !== '') {
+                    return $name;
+                }
+            }
+        } catch (\Exception $e) {
+            // Ignore
+        }
+        return null;
     }
 
     /**
