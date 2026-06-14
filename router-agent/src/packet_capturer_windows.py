@@ -1094,15 +1094,9 @@ class PacketCaptureWindows:
                     except Exception:
                         pass
 
-                # Only update last_seen from ARP if:
-                # - device has recent packet activity, OR
-                # - ARP neighbor state is Reachable (confirmed contact)
-                neighbor_state = neighbor_states.get(ip, '')
-                if has_recent_packets or neighbor_state in ('Reachable', 'Delay'):
-                    stats['last_seen'] = info['last_seen']
-                elif not stats.get('last_seen'):
-                    # First time seeing this device — keep it even without confirmation
-                    stats['last_seen'] = info['last_seen']
+                # If device is in the ARP table, it is on the network — keep it alive.
+                # The frontend 15-minute window handles cleanup when ARP entries expire.
+                stats['last_seen'] = info['last_seen']
 
                 if not stats.get('device_name'):
                     stats['device_name'] = self._resolve_device_name(ip, {})
