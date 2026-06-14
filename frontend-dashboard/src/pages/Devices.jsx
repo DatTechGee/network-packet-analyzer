@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { deviceAPI } from '../services/api';
 import { Server, Wifi, Clock3, HardDrive, ShieldBan, ShieldCheck } from 'lucide-react';
 
@@ -20,6 +21,7 @@ function isInfrastructureDevice(device) {
 }
 
 export default function Devices() {
+  const navigate = useNavigate();
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -119,7 +121,7 @@ export default function Devices() {
                 </thead>
                 <tbody>
                   {devices.map((device) => (
-                    <tr key={device.id} className={`border-t border-slate-700 hover:bg-slate-700/40 ${device.is_blocked ? 'bg-red-900/10' : ''}`}>
+                    <tr key={device.id} className={`border-t border-slate-700 hover:bg-slate-700/40 cursor-pointer ${device.is_blocked ? 'bg-red-900/10' : ''}`} onClick={() => navigate(`/device/${device.id}`)}>
                       <td className="px-6 py-4">
                         <div className="font-semibold text-white flex items-center gap-2">
                           {device.display_name || device.device_name || device.ip_address}
@@ -156,7 +158,7 @@ export default function Devices() {
                           {device.is_active || device.is_online ? 'Online' : 'Offline'}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                         {device.is_blocked ? (
                           <button
                             onClick={() => handleUnblockDevice(device)}
