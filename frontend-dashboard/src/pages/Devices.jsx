@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { deviceAPI } from '../services/api';
 import { Server, Wifi, Clock3, HardDrive, ShieldBan, ShieldCheck } from 'lucide-react';
 
-const ACTIVE_WINDOW_MINUTES = 2;
+const ACTIVE_WINDOW_MINUTES = 15;
 const DEVICE_PAGE_SIZE = 1000;
 
 function isInfrastructureDevice(device) {
