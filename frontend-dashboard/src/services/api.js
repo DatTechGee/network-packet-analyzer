@@ -38,6 +38,9 @@ export const deviceAPI = {
   update: (id, data) => apiClient.patch(`/devices/${id}`, data),
   blockDomain: (id, domain) => apiClient.post(`/devices/${id}/block-domain`, { domain }),
   unblockDomain: (id, domain) => apiClient.post(`/devices/${id}/unblock-domain`, { domain }),
+  blockDevice: (id) => apiClient.post(`/devices/${id}/block`),
+  unblockDevice: (id) => apiClient.post(`/devices/${id}/unblock`),
+  getBlockedDevices: () => apiClient.get('/devices/blocked/list'),
   setBandwidthLimit: (id, limitMbps, period) => apiClient.post(`/devices/${id}/bandwidth-limit`, { 
     limit_mbps: limitMbps,
     period: period || 'daily'

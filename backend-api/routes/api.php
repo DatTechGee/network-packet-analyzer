@@ -15,6 +15,9 @@ Route::prefix('devices')->group(function () {
     Route::patch('/{deviceId}', [DeviceController::class, 'update']);
     Route::post('/{deviceId}/block-domain', [DeviceController::class, 'blockDomain']);
     Route::post('/{deviceId}/unblock-domain', [DeviceController::class, 'unblockDomain']);
+    Route::post('/{deviceId}/block', [DeviceController::class, 'blockDevice']);
+    Route::post('/{deviceId}/unblock', [DeviceController::class, 'unblockDevice']);
+    Route::get('/blocked/list', [DeviceController::class, 'getBlockedDevices']);
     Route::post('/{deviceId}/bandwidth-limit', [DeviceController::class, 'setBandwidthLimit']);
     Route::get('/{deviceId}/connections', [DeviceController::class, 'connections']);
 });

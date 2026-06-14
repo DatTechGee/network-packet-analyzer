@@ -256,6 +256,103 @@ class DeviceController extends Controller
     }
 
     /**
+     * Block a device from the network using Windows Firewall
+     */
+    public function blockDevice(int $deviceId): JsonResponse
+    {
+        $device = Device::findOrFail($deviceId);
+
+        if ($this->isInfrastructureDevice($device)) {
+            return response()->json(['success' => false, 'message' => 'Cannot block infrastructure devices'], 400);
+        }
+
+        $ip = $device->ip_address;
+        $mac = $device->mac_address;
+        $name = $device->device_name ?: $device->metadata['hostname'] ?: "Device {$ip}";
+        $ruleName = "NetworkAnalyzer_Block_Device_{$deviceId}";
+
+        $metadata = $device->metadata ?? [];
+        $metadata['is_blocked'] = true;
+        $metadata['blocked_at'] = now()->toIso8601String();
+        $device->metadata = $metadata;
+        $device->save();
+
+        $firewallApplied = false;
+        $firewallOutput = '';
+
+        if ($ip) {
+            $commands = [
+                "netsh advfirewall firewall add rule name=\"{$ruleName}\" dir=In action=Block remoteip={$ip} enable=yes",
+                "netsh advfirewall firewall add rule name=\"{$ruleName}_Out\" dir=Out action=Block remoteip={$ip} enable=yes",
+            ];
+            foreach ($commands as $cmd) {
+                $output = [];
+                $exitCode = 0;
+                exec($cmd . ' 2>&1', $output, $exitCode);
+                if ($exitCode === 0) {
+                    $firewallApplied = true;
+                } else {
+                    $firewallOutput .= implode("\n", $output) . "\n";
+                }
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Device {$name} blocked",
+            'is_blocked' => true,
+            'firewall_applied' => $firewallApplied,
+            'firewall_output' => $firewallOutput ?: null,
+        ]);
+    }
+
+    /**
+     * Unblock a previously blocked device
+     */
+    public function unblockDevice(int $deviceId): JsonResponse
+    {
+        $device = Device::findOrFail($deviceId);
+
+        $metadata = $device->metadata ?? [];
+        $metadata['is_blocked'] = false;
+        $metadata['unblocked_at'] = now()->toIso8601String();
+        $device->metadata = $metadata;
+        $device->save();
+
+        $ruleName = "NetworkAnalyzer_Block_Device_{$deviceId}";
+        $commands = [
+            "netsh advfirewall firewall delete rule name=\"{$ruleName}\"",
+            "netsh advfirewall firewall delete rule name=\"{$ruleName}_Out\"",
+        ];
+        $output = [];
+        $exitCode = 0;
+        foreach ($commands as $cmd) {
+            exec($cmd . ' 2>&1', $output, $exitCode);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Device unblocked',
+            'is_blocked' => false,
+        ]);
+    }
+
+    /**
+     * Get list of all blocked device IDs
+     */
+    public function getBlockedDevices(): JsonResponse
+    {
+        $blocked = Device::whereJsonContains('metadata->is_blocked', true)
+            ->pluck('id')
+            ->toArray();
+
+        return response()->json([
+            'success' => true,
+            'blocked_ids' => $blocked,
+        ]);
+    }
+
+    /**
      * Format device for response
      */
     private function formatDevice(Device $device, float $activeWindowMinutes = 15): array
@@ -277,6 +374,7 @@ class DeviceController extends Controller
             'vendor' => $device->vendor,
             'is_online' => $device->is_online,
             'is_active' => $isActive,
+            'is_blocked' => ($device->metadata['is_blocked'] ?? false) === true,
             'first_seen' => $device->first_seen?->toIso8601String(),
             'last_seen' => $device->last_seen?->toIso8601String(),
             'metadata' => $device->metadata ?? [],

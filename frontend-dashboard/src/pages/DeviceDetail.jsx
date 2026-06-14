@@ -110,6 +110,31 @@ export default function DeviceDetail() {
     }
   };
 
+  const handleBlockDevice = async () => {
+    const confirmed = confirm(
+      `Block ${device.display_name || device.device_name || device.ip_address}?\n\nThis will add a Windows Firewall rule to block all traffic to/from this device.`
+    );
+    if (!confirmed) return;
+
+    try {
+      const res = await deviceAPI.blockDevice(deviceId);
+      alert(res.data.message || 'Device blocked');
+      fetchDeviceDetails();
+    } catch (err) {
+      alert(`Error blocking device: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
+  const handleUnblockDevice = async () => {
+    try {
+      const res = await deviceAPI.unblockDevice(deviceId);
+      alert(res.data.message || 'Device unblocked');
+      fetchDeviceDetails();
+    } catch (err) {
+      alert(`Error unblocking device: ${err.message}`);
+    }
+  };
+
   const handleSelectSite = (site) => {
     setSelectedSite(site);
   };
@@ -146,23 +171,47 @@ export default function DeviceDetail() {
       <div className="bg-slate-800 rounded-lg p-6 mb-6 border border-slate-700 surface-card hover:shadow-2xl">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2">
-              {device.display_name || device.device_name || device.metadata?.hostname || `Device ${device.ip_address}`}
-            </h1>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-3xl font-bold">
+                {device.display_name || device.device_name || device.metadata?.hostname || `Device ${device.ip_address}`}
+              </h1>
+              {device.is_blocked && (
+                <span className="px-3 py-1 bg-red-600/30 text-red-300 text-sm font-semibold rounded-full border border-red-500">
+                  BLOCKED
+                </span>
+              )}
+            </div>
             <p className="text-gray-400">{device.ip_address}</p>
             <p className="text-gray-500 text-sm">MAC: {device.mac_address}</p>
           </div>
-          <div className="text-right">
-            <p className={`text-lg font-semibold ${isDeviceConnected(device) ? 'text-green-400' : 'text-red-400'}`}>
-              {isDeviceConnected(device) ? '● Connected' : '● Offline'}
-            </p>
-            <p className="text-gray-400 text-sm">Last seen: {device.last_seen ? new Date(device.last_seen).toLocaleString() : 'Unknown'}</p>
-            <div className="flex items-center gap-2 mt-1 justify-end">
-              <p className="text-gray-500 text-xs">
-                {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : 'Refreshing live'}
+          <div className="text-right flex flex-col items-end gap-2">
+            <div>
+              <p className={`text-lg font-semibold ${isDeviceConnected(device) ? 'text-green-400' : 'text-red-400'}`}>
+                {isDeviceConnected(device) ? '● Connected' : '● Offline'}
               </p>
-              <button onClick={fetchDeviceDetails} className="text-xs text-blue-400 hover:text-blue-300 underline">Refresh</button>
+              <p className="text-gray-400 text-sm">Last seen: {device.last_seen ? new Date(device.last_seen).toLocaleString() : 'Unknown'}</p>
+              <div className="flex items-center gap-2 mt-1 justify-end">
+                <p className="text-gray-500 text-xs">
+                  {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : 'Refreshing live'}
+                </p>
+                <button onClick={fetchDeviceDetails} className="text-xs text-blue-400 hover:text-blue-300 underline">Refresh</button>
+              </div>
             </div>
+            {device.is_blocked ? (
+              <button
+                onClick={handleUnblockDevice}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-colors"
+              >
+                Unblock Device
+              </button>
+            ) : (
+              <button
+                onClick={handleBlockDevice}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg transition-colors"
+              >
+                Block Device
+              </button>
+            )}
           </div>
         </div>
       </div>

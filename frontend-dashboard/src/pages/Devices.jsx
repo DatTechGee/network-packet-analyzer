@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { deviceAPI } from '../services/api';
-import { Server, Wifi, Clock3, HardDrive } from 'lucide-react';
+import { Server, Wifi, Clock3, HardDrive, ShieldBan, ShieldCheck } from 'lucide-react';
 
 const ACTIVE_WINDOW_MINUTES = 2;
 const DEVICE_PAGE_SIZE = 1000;
@@ -52,7 +52,32 @@ export default function Devices() {
     }
   };
 
+  const handleBlockDevice = async (device) => {
+    const name = device.display_name || device.device_name || device.ip_address;
+    const confirmed = confirm(`Block ${name}?\n\nThis will add a Windows Firewall rule to block all traffic to/from this device.`);
+    if (!confirmed) return;
+
+    try {
+      const res = await deviceAPI.blockDevice(device.id);
+      alert(res.data.message || 'Device blocked');
+      fetchDevices();
+    } catch (err) {
+      alert(`Error: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
+  const handleUnblockDevice = async (device) => {
+    try {
+      const res = await deviceAPI.unblockDevice(device.id);
+      alert(res.data.message || 'Device unblocked');
+      fetchDevices();
+    } catch (err) {
+      alert(`Error: ${err.message}`);
+    }
+  };
+
   const activeDevices = devices.filter((device) => device.is_active || device.is_online);
+  const blockedDevices = devices.filter((device) => device.is_blocked);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-8 page-shell">
@@ -71,7 +96,7 @@ export default function Devices() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <StatCard icon={Server} label="Total Devices" value={devices.length} />
           <StatCard icon={Wifi} label="Active Now" value={activeDevices.length} />
-          <StatCard icon={HardDrive} label="Infrastructure Hidden" value="0" />
+          <StatCard icon={ShieldBan} label="Blocked" value={blockedDevices.length} danger={blockedDevices.length > 0} />
           <StatCard icon={Clock3} label="Offline" value={Math.max(devices.length - activeDevices.length, 0)} />
         </div>
 
@@ -89,13 +114,21 @@ export default function Devices() {
                     <th className="px-6 py-4">Vendor</th>
                     <th className="px-6 py-4">Last Seen</th>
                     <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {devices.map((device) => (
-                    <tr key={device.id} className="border-t border-slate-700 hover:bg-slate-700/40">
+                    <tr key={device.id} className={`border-t border-slate-700 hover:bg-slate-700/40 ${device.is_blocked ? 'bg-red-900/10' : ''}`}>
                       <td className="px-6 py-4">
-                        <div className="font-semibold text-white">{device.display_name || device.device_name || device.ip_address}</div>
+                        <div className="font-semibold text-white flex items-center gap-2">
+                          {device.display_name || device.device_name || device.ip_address}
+                          {device.is_blocked && (
+                            <span className="px-2 py-0.5 bg-red-600/30 text-red-300 text-[10px] font-bold rounded-full border border-red-500 uppercase">
+                              Blocked
+                            </span>
+                          )}
+                        </div>
                         <div className="text-sm text-slate-400">{device.mac_address}</div>
                         {device.metadata?.fingerprint && (
                           <div className="text-[11px] text-slate-500 font-mono mt-1 truncate max-w-[20rem]">
@@ -123,6 +156,25 @@ export default function Devices() {
                           {device.is_active || device.is_online ? 'Online' : 'Offline'}
                         </span>
                       </td>
+                      <td className="px-6 py-4">
+                        {device.is_blocked ? (
+                          <button
+                            onClick={() => handleUnblockDevice(device)}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                          >
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                            Unblock
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleBlockDevice(device)}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-red-600/80 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                          >
+                            <ShieldBan className="w-3.5 h-3.5" />
+                            Block
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -137,15 +189,15 @@ export default function Devices() {
   );
 }
 
-function StatCard({ icon: Icon, label, value }) {
+function StatCard({ icon: Icon, label, value, danger }) {
   return (
-    <div className="bg-slate-800 rounded-2xl border border-slate-700 p-5 surface-card">
+    <div className={`bg-slate-800 rounded-2xl border p-5 surface-card ${danger ? 'border-red-500/50' : 'border-slate-700'}`}>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-slate-400 text-sm">{label}</p>
-          <p className="text-3xl font-bold text-white mt-1">{value}</p>
+          <p className={`text-3xl font-bold mt-1 ${danger ? 'text-red-400' : 'text-white'}`}>{value}</p>
         </div>
-        <Icon className="w-8 h-8 text-sky-400" />
+        <Icon className={`w-8 h-8 ${danger ? 'text-red-400' : 'text-sky-400'}`} />
       </div>
     </div>
   );

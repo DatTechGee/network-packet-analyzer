@@ -75,6 +75,12 @@ class TrafficController extends Controller
             }
 
             $device = $this->resolveDeviceForIp($sourceIp, $statsArray);
+
+            // Skip bandwidth snapshots for blocked devices
+            if (($device->metadata['is_blocked'] ?? false) === true) {
+                continue;
+            }
+
             $deviceIdsByIp[$sourceIp] = $device->id;
             $devicesUpdated++;
 
@@ -122,6 +128,12 @@ class TrafficController extends Controller
                     );
                 $deviceIdsByIp[$deviceIp] = $device->id;
                 $devicesUpdated++;
+            }
+
+            // Skip traffic from blocked devices
+            $blockedDeviceIds = $blockedDeviceIds ?? ($this->getBlockedDeviceIds() ?? []);
+            if (in_array($deviceIdsByIp[$deviceIp], $blockedDeviceIds)) {
+                continue;
             }
 
             $trafficLogsCreated++;
@@ -935,6 +947,17 @@ class TrafficController extends Controller
     /**
      * Determine if an IP is from a private/local range.
      */
+    private function getBlockedDeviceIds(): array
+    {
+        try {
+            return \App\Models\Device::whereJsonContains('metadata->is_blocked', true)
+                ->pluck('id')
+                ->toArray();
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
     private function isPrivateIp(string $ip): bool
     {
         if (!filter_var($ip, FILTER_VALIDATE_IP)) {
