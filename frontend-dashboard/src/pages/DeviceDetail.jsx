@@ -25,7 +25,7 @@ export default function DeviceDetail() {
 
   useEffect(() => {
     fetchDeviceDetails();
-    const interval = setInterval(fetchDeviceDetails, 10000);
+    const interval = setInterval(fetchDeviceDetails, 600000);
     return () => clearInterval(interval);
   }, [deviceId, sitePeriod]);
 
@@ -157,9 +157,12 @@ export default function DeviceDetail() {
               {isDeviceConnected(device) ? '● Connected' : '● Offline'}
             </p>
             <p className="text-gray-400 text-sm">Last seen: {device.last_seen ? new Date(device.last_seen).toLocaleString() : 'Unknown'}</p>
-            <p className="text-gray-500 text-xs mt-1">
-              {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : 'Refreshing live'}
-            </p>
+            <div className="flex items-center gap-2 mt-1 justify-end">
+              <p className="text-gray-500 text-xs">
+                {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : 'Refreshing live'}
+              </p>
+              <button onClick={fetchDeviceDetails} className="text-xs text-blue-400 hover:text-blue-300 underline">Refresh</button>
+            </div>
           </div>
         </div>
       </div>
@@ -237,6 +240,7 @@ export default function DeviceDetail() {
               <option value="5m">Last 5 minutes</option>
               <option value="1h">Last 1 hour</option>
               <option value="24h">Last 24 hours</option>
+              <option value="7d">Last 7 days</option>
             </select>
           </div>
         </div>
@@ -264,7 +268,10 @@ export default function DeviceDetail() {
                 </div>
               ))
             ) : (
-              <div className="text-gray-400 text-center py-4">No sites captured yet</div>
+              <div className="text-gray-400 text-center py-4">
+                <p>No sites captured yet</p>
+                <p className="text-xs mt-1 text-gray-500">Sites appear when this device browses the web</p>
+              </div>
             )}
           </div>
         </div>
