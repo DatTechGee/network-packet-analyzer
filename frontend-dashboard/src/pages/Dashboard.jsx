@@ -4,7 +4,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Zap, AlertTriangle, Wifi, Shield, RefreshCw, Activity } from 'lucide-react';
 import { deviceAPI, trafficAPI, threatAPI } from '../services/api';
 
-const DEFAULT_REFRESH_INTERVAL_SECONDS = 3;
+const DEFAULT_REFRESH_INTERVAL_SECONDS = 30;
 const MAX_ACTIVE_DEVICE_PAGE_SIZE = 1000;
 
 function getDeviceLabel(device) {
